@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07090d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  
+  <title>Meu Engenheiro de Bolso — AM Consultoria &amp; Engenharia</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; background: #07090d; color: #e5e7eb; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    canvas { touch-action: none; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0b0e14; }
+    ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-[#07090d] text-zinc-100 min-h-screen flex flex-col">
+
+  <div class="bg-amber-950 text-amber-100 text-xs px-4 py-2 text-center">VERSÃO LOCAL DE TESTE: sem login seguro, sincronização entre aparelhos ou cobrança ativa. Não usar como folha oficial ou orçamento definitivo.</div>
+  <section id="cloud-panel" class="p-4 border-b border-sky-800 bg-zinc-900"><h2 class="font-bold">Conexão Supabase — piloto operacional</h2><p class="text-xs text-amber-300">Somente o painel abaixo usa dados reais do servidor. Os demais módulos continuam locais e demonstrativos.</p><div class="flex flex-wrap gap-2 mt-2"><input id="cloud-email" type="email" placeholder="E-mail" class="bg-zinc-800 p-2 rounded"><input id="cloud-password" type="password" placeholder="Senha" class="bg-zinc-800 p-2 rounded"><button id="cloud-login" class="bg-sky-800 p-2 rounded">Entrar</button><button id="cloud-signup" class="bg-zinc-700 p-2 rounded">Cadastrar</button><button id="cloud-logout" class="bg-zinc-700 p-2 rounded">Sair</button></div><div id="cloud-status" role="status" class="text-sm mt-2"></div><div id="cloud-private" hidden><div class="flex flex-wrap gap-2 mt-2"><input id="cloud-org-name" placeholder="Nome da construtora" class="bg-zinc-800 p-2 rounded"><button id="cloud-org-create" class="bg-sky-800 p-2 rounded">Criar construtora</button><select id="cloud-org" class="bg-zinc-800 p-2 rounded"></select><input id="cloud-project-name" placeholder="Nome da obra" class="bg-zinc-800 p-2 rounded"><button id="cloud-project-create" class="bg-sky-800 p-2 rounded">Criar obra</button><button id="cloud-refresh" class="bg-zinc-700 p-2 rounded">Atualizar</button></div><ul id="cloud-projects" class="mt-2"></ul><div class="border-t border-zinc-700 mt-4 pt-4"><h3 class="font-bold">Operações no servidor</h3><label>Obra ativa <select id="cloud-active-project" class="bg-zinc-800 p-2"></select></label><div id="cloud-operations" class="grid gap-3 mt-3"></div><pre id="cloud-results" class="whitespace-pre-wrap text-xs mt-3"></pre></div></div></section>
+<!-- Topbar -->
+  <header class="bg-[#040507] border-b border-zinc-800 sticky top-0 z-30">
+    <div class="px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <button id="btn-toggle-menu" type="button" class="lg:hidden px-2.5 py-1.5 rounded bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs">☰ Menu</button>
+        <!-- Ícone temporário do aplicativo; substituir pela primeira logomarca oficial AM quando o arquivo original for fornecido -->
+        <span class="font-bold">AM</span>
+        <div>
+          <div class="font-bold text-sm sm:text-base tracking-tight text-white leading-tight">MEU ENGENHEIRO DE BOLSO</div>
+          <div class="text-[11px] text-zinc-400">AM CONSULTORIA &amp; ENGENHARIA · v1.1.0-auditada</div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <button id="btn-backup" type="button" class="px-3 py-1.5 rounded bg-emerald-800 text-white">Exportar backup JSON</button><button id="btn-goto-projects-upload" type="button" class="px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-semibold">⬆ Anexar / Baixar Projetos</button>
+        <label class="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1.5">
+          <span class="text-zinc-500">Organização:</span>
+          <select id="tenant-select" class="bg-transparent text-zinc-100 font-medium focus:outline-none">
+            <option value="alfa" class="bg-zinc-950 text-zinc-100">Construtora Alfa Demo Ltda</option>
+            <option value="beta" class="bg-zinc-950 text-zinc-100">Construtora Beta Demo Ltda</option>
+          </select>
+        </label>
+        <label class="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1.5">
+          <span class="text-zinc-500">Perfil:</span>
+          <select id="role-select" class="bg-transparent text-zinc-100 font-medium focus:outline-none">
+            <option value="lead_engineer" class="bg-zinc-950 text-zinc-100">Engenheiro Responsável</option>
+            <option value="read_only" class="bg-zinc-950 text-zinc-100">Somente Leitura (RBAC)</option>
+          </select>
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <div id="toast" class="fixed bottom-4 right-4 z-50 hidden max-w-sm bg-zinc-900 text-zinc-100 text-xs px-4 py-3 rounded-lg shadow-xl border border-zinc-700"></div>
+
+  <div class="flex flex-1 min-h-0">
+    <!-- Menu Lateral com Títulos Grandes/Visíveis e Subtítulos Menores -->
+    <aside id="sidebar" class="hidden lg:flex flex-col w-68 shrink-0 bg-[#090c11] border-r border-zinc-800 p-4 gap-1 overflow-y-auto">
+      <div class="text-sm font-bold text-white tracking-wide pt-1 pb-1.5 border-b border-zinc-800/80">Núcleo &amp; Projetos</div>
+      <button type="button" data-tab="obras" class="nav-btn text-left pl-3 pr-2 py-1.5 rounded text-xs font-medium text-zinc-400 hover:bg-zinc-900 hover:text-white">Central de Obras &amp; Plano</button>
+      <button type="button" data-tab="medicao" class="nav-btn text-left pl-3 pr-2 py-1.5 rounded text-xs font-medium text-zinc-400 hover:bg-zinc-900 hover:text-white">Anexar Projetos &amp; Medição (T3)</button>
+
+      <div class="text-sm font-bold text-white tracking-wide pt-4 pb-1.5 border-b border-zinc-800/80">Engenharia &amp; Custos</div>
+      <button type="button" data-tab="materiais" class="nav-btn text-left pl-3 pr-2 py-1.5 rounded text-xs font-medium text-zinc-400 hover:bg-zinc-900 hover:text-white">Quantitativo de Materiais (T4)</button>
+      <button type="button" data-tab="orcamento" class="nav-btn text-left pl-3 pr-2 py-1.5 rounded text-xs font-medium text-zinc-400 hover:bg-zinc-900 hover:text-white">Orçamentos, SINAPI &amp; BDI (T5)</button>
+
+      <div class="text-sm font-bold text-white tracking-wide pt-4 pb-1.5 border-b border-zinc-800/80">Campo &amp; Pessoas</div>
+      <button type="button" data-tab="folha" class="nav-btn text-left pl-3 pr-2 py-1.5 rounded text-xs font-medium text-zinc-400 hover:bg-zinc-900 hover:text-white">Folha de Pagamento &amp; Produtividade</button>
+      <button type="button" data-tab="campo" class="nav-btn text-left pl-3 pr-2 py-1.5 rounded text-xs font-medium text-zinc-400 hover:bg-zinc-900 hover:text-white">Cronograma CPM &amp; RDO (T8)</button>
+      <button type="button" data-tab="estoque" class="nav-btn text-left pl-3 pr-2 py-1.5 rounded text-xs font-medium text-zinc-400 hover:bg-zinc-900 hover:text-white">Compras, NF-e &amp; Estoque (T6/T7)</button>
+
+      <div class="text-sm font-bold text-white tracking-wide pt-4 pb-1.5 border-b border-zinc-800/80">Gestão &amp; Diferenciais</div>
+      <button type="button" data-tab="financeiro" class="nav-btn text-left pl-3 pr-2 py-1.5 rounded text-xs font-medium text-zinc-400 hover:bg-zinc-900 hover:text-white">Financeiro, Contratos &amp; QSE</button>
+      <button type="button" data-tab="licenciamento" class="nav-btn text-left pl-3 pr-2 py-1.5 rounded text-xs font-medium text-zinc-400 hover:bg-zinc-900 hover:text-white">Licenciamento IBGE (Req. 28)</button>
+      <button type="button" data-tab="copiloto" class="nav-btn text-left pl-3 pr-2 py-1.5 rounded text-xs font-medium text-zinc-400 hover:bg-zinc-900 hover:text-white">Copiloto IA &amp; Auditoria</button>
+    </aside>
+
+    <!-- Conteúdo Principal (100% Preto) -->
+    <main class="flex-1 p-4 sm:p-6 overflow-y-auto space-y-6 bg-[#07090d]">
+<div role="status" class="rounded-lg border border-amber-700/60 bg-amber-950/30 p-3 text-xs text-amber-200">VERSÃO DE TESTES — dados armazenados localmente neste dispositivo. Não usar para folha, pagamentos, estoque ou orçamento reais antes da implantação do servidor seguro. Para uso por profissionais autônomos, proprietários, arquitetos, engenheiros e construtoras.</div>
+
+      <!-- 1. CENTRAL DE OBRAS -->
+      <section id="panel-obras" class="tab-panel hidden space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-4">
+            <div class="text-xs text-zinc-400">Obras Ativas no Tenant</div>
+            <div id="kpi-projects" class="text-2xl font-bold mt-1 mono text-white">1</div>
+            <div id="kpi-tenant-label" class="text-xs text-sky-400 mt-1">Construtora Alfa Demo Ltda</div>
+          </div>
+          <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-4">
+            <div class="text-xs text-zinc-400">Plano AM-PRO-5 (Mensal)</div>
+            <div id="kpi-billing" class="text-2xl font-bold mt-1 mono text-emerald-400">R$ 200,00</div>
+            <div id="kpi-billing-sub" class="text-xs text-zinc-500 mt-1">Até 5 obras · +R$ 50/extra</div>
+          </div>
+          <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-4">
+            <div class="text-xs text-zinc-400">Total Folha de Pagamento</div>
+            <div id="kpi-payroll" class="text-2xl font-bold mt-1 mono text-white">R$ 0,00</div>
+            <div class="text-xs text-zinc-500 mt-1">Oficial + Produtividade − Faltas</div>
+          </div>
+          <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-4">
+            <div class="text-xs text-zinc-400">Divergências NF-e × Físico</div>
+            <div id="kpi-divergences" class="text-2xl font-bold mt-1 mono text-amber-400">1</div>
+            <div class="text-xs text-zinc-500 mt-1">Auditoria append-only</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div class="xl:col-span-2 bg-[#0e1117] border border-zinc-800 rounded-lg p-5">
+            <h2 class="font-bold text-base text-white mb-3">Central de Obras</h2>
+            <div id="projects-container" class="divide-y divide-zinc-800"></div>
+          </div>
+          <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-5 space-y-3 text-xs">
+            <h3 class="font-bold text-sm text-white">Cadastrar Nova Obra</h3>
+            <label class="block text-zinc-400">Código<input id="inp-proj-code" type="text" placeholder="Ex: ALFA-002" class="mt-1 w-full bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-2"></label>
+            <label class="block text-zinc-400">Nome<input id="inp-proj-name" type="text" placeholder="Ex: Residencial Atlântico Demo" class="mt-1 w-full bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-2"></label>
+            <label class="block text-zinc-400">UF<input id="inp-proj-uf" type="text" value="PB" maxlength="2" class="mt-1 w-full bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-2 uppercase"></label>
+            <button id="btn-save-project" type="button" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 rounded">Salvar Obra</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. ANEXAR PROJETOS & MEDIÇÃO -->
+      <section id="panel-medicao" class="tab-panel hidden space-y-4">
+        <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="font-bold text-sm text-white">Anexar Projeto / Prancha (PDF, JPG, PNG)</h2>
+              <p class="text-[11px] text-zinc-400"><strong>PDF, JPG e PNG abrem direto no visualizador abaixo</strong> para calibrar (2 cliques), medir e enviar ao orçamento. Arquivos <strong>.DWG</strong> exigem conversão prévia para PDF/DXF ou SDK licenciado (Autodesk/ODA).</p>
+            </div>
+            <select id="sel-active-doc" class="bg-zinc-950 border border-zinc-700 text-zinc-100 rounded px-2.5 py-1.5 text-xs"></select>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-6 gap-2 text-xs items-center">
+            <input id="up-code" type="text" placeholder="Código (ARQ-02)" class="bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-1.5">
+            <select id="up-disc" class="bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-1.5">
+              <option value="arquitetura">Arquitetura</option>
+              <option value="estrutural">Estrutural</option>
+              <option value="hidrossanitario">Hidrossanitário</option>
+              <option value="eletrico">Elétrico</option>
+            </select>
+            <input id="up-rev" type="text" value="R00" class="bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-1.5">
+            <input id="up-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.dwg" class="sm:col-span-2 bg-zinc-950 border border-zinc-700 text-zinc-300 rounded px-2 py-1 text-[11px]">
+            <button id="btn-upload-doc" type="button" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold py-1.5 px-3 rounded">+ Anexar</button>
+          </div>
+          <div id="docs-library" class="flex flex-wrap gap-2 text-[11px]"></div>
+        </div>
+
+        <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="btn-zoom-out" type="button" class="px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded hover:bg-zinc-800">− Zoom</button>
+            <span id="lbl-zoom" class="mono px-2">100%</span>
+            <button id="btn-zoom-in" type="button" class="px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded hover:bg-zinc-800">+ Zoom</button>
+            <button id="btn-rotate" type="button" class="px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded hover:bg-zinc-800">Girar 90°</button>
+            <span id="lbl-rot" class="mono px-2">0°</span>
+            <span id="pdf-page-controls" class="hidden inline-flex items-center gap-1 ml-2">
+              <button id="btn-pdf-prev" type="button" class="px-2 py-1 bg-zinc-900 border border-zinc-700 rounded">◀</button>
+              <span id="lbl-pdf-page" class="mono px-1 text-sky-300">Pág 1/1</span>
+              <button id="btn-pdf-next" type="button" class="px-2 py-1 bg-zinc-900 border border-zinc-700 rounded">▶</button>
+            </span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="sel-measure-mode" class="bg-zinc-950 border border-zinc-700 text-zinc-100 rounded px-2.5 py-1.5">
+              <option value="calibrate">Calibrar Escala (2 cliques)</option>
+              <option value="distance" selected>Medir Distância (2 cliques)</option>
+              <option value="area">Medir Área (4 cliques)</option>
+            </select>
+            <input id="inp-cal-meters" type="number" step="0.01" value="5.00" class="w-20 bg-zinc-950 border border-zinc-700 text-white rounded px-2 py-1.5 mono">
+            <button id="btn-clear-draft" type="button" class="px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded hover:bg-zinc-800">Limpar</button>
+            <button id="btn-demo-5m" type="button" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded font-medium">Validar 5,00 m (T3)</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <div class="xl:col-span-2 bg-[#040507] border border-zinc-800 rounded-lg p-3 overflow-auto flex justify-center items-center min-h-[360px]">
+            <canvas id="plan-canvas" width="640" height="420" class="cursor-crosshair max-w-full h-auto"></canvas>
+          </div>
+          <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-4 space-y-3">
+            <h3 class="font-bold text-sm text-white">Memória no Espaço do Documento</h3>
+            <p id="cal-status-text" class="text-xs text-zinc-400">Escala 1:50 calibrada (5,00 m = 283,46 pt).</p>
+            <div id="measure-list" class="space-y-2 text-xs max-h-80 overflow-y-auto"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. QUANTITATIVO DE MATERIAIS -->
+      <section id="panel-materiais" class="tab-panel hidden space-y-6">
+        <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-5 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="font-bold text-base text-white">Lista de Quantitativo de Materiais</h2>
+              <p class="text-xs text-zinc-400">Quantidade teórica, perda explícita (%), quantidade de compra, estoque e saldo a comprar.</p>
+            </div>
+            <span id="mat-total-cost" class="mono text-sm font-bold px-3 py-1.5 rounded bg-emerald-950/60 border border-emerald-700 text-emerald-300">Saldo a Comprar: R$ 0,00</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-zinc-700 text-zinc-400 mono">
+                  <th class="py-2 pr-3">Material / Serviço</th>
+                  <th class="py-2 pr-3">Teórico</th>
+                  <th class="py-2 pr-3">Perda %</th>
+                  <th class="py-2 pr-3">Compra</th>
+                  <th class="py-2 pr-3">Estoque</th>
+                  <th class="py-2 pr-3">A Comprar</th>
+                  <th class="py-2 pr-3">Unit.</th>
+                  <th class="py-2 text-right">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody id="materials-tbody" class="divide-y divide-zinc-800"></tbody>
+            </table>
+          </div>
+          <div class="pt-4 border-t border-zinc-800 grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs">
+            <input id="mat-name" type="text" placeholder="Material (ex: Areia Lavada)" class="col-span-2 bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-1.5">
+            <input id="mat-qty" type="number" step="0.1" placeholder="Qtd líq." class="bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-1.5">
+            <input id="mat-unit" type="text" value="m3" placeholder="Un." class="bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-1.5">
+            <input id="mat-waste" type="number" step="1" value="10" placeholder="Perda %" class="bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-1.5">
+            <input id="mat-price" type="number" step="0.01" placeholder="R$ unit." class="bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-1.5">
+            <button id="btn-add-material" type="button" class="col-span-2 sm:col-span-6 bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 rounded">+ Adicionar Material</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. ORÇAMENTOS -->
+      <section id="panel-orcamento" class="tab-panel hidden bg-[#0e1117] border border-zinc-800 rounded-lg p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="font-bold text-base text-white">Orçamento por Escopo Independente + SINAPI + BDI (T5)</h2>
+            <div class="flex flex-wrap items-center gap-2 mt-2 text-xs">
+              <label class="px-2.5 py-1 bg-zinc-900 border border-zinc-700 rounded cursor-pointer hover:bg-zinc-800 text-sky-300">
+                ⬆ Importar CSV SINAPI (código;descrição;un;preço)
+                <input id="inp-sinapi-csv" type="file" accept=".csv,.txt" class="hidden">
+              </label>
+              <span id="lbl-sinapi-status" class="mono text-[11px] text-amber-400">SINAPI: tabela oficial não importada (nenhum preço inventado)</span>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" data-scope="labor_only" class="scope-btn px-3 py-1.5 rounded text-xs font-medium bg-sky-600 text-white">Somente Mão de Obra</button>
+            <button type="button" data-scope="materials_only" class="scope-btn px-3 py-1.5 rounded text-xs font-medium bg-zinc-900 border border-zinc-700 text-zinc-300">Somente Materiais</button>
+            <button type="button" data-scope="materials_and_labor" class="scope-btn px-3 py-1.5 rounded text-xs font-medium bg-zinc-900 border border-zinc-700 text-zinc-300">Materiais + MO</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+          <label class="text-zinc-400">Quantitativo (m²)<input id="b-qty" type="number" step="0.5" value="10" class="mt-1 w-full bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-2"></label>
+          <label class="text-zinc-400">HH / m²<input id="b-hh" type="number" step="0.05" value="1.25" class="mt-1 w-full bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-2"></label>
+          <label class="text-zinc-400">Custo/HH (R$)<input id="b-mo" type="number" step="1" value="32.00" class="mt-1 w-full bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-2"></label>
+          <label class="text-zinc-400">BDI (%)<input id="b-bdi" type="number" step="0.5" value="0.0" class="mt-1 w-full bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-2"></label>
+        </div>
+        <label class="block text-xs text-zinc-400">Custo real de materiais por m² (R$) — obrigatório quando incluir materiais<input id="b-material-unit" type="number" min="0" step="0.01" placeholder="Informe preço apurado" class="mt-1 w-full bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-2"></label>
+        <div id="budget-result" class="bg-zinc-950 border border-zinc-800 rounded p-4 text-xs space-y-1.5 mono"></div>
+      </section>
+
+      <!-- 5. FOLHA DE PAGAMENTO & PRODUTIVIDADE (EXATAMENTE COMO SOLICITADO) -->
+      <section id="panel-folha" class="tab-panel space-y-5">
+        <!-- Cabeçalho Sindicato / UF / Município -->
+        <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-5 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="font-bold text-base text-white">Folha de Pagamento &amp; Produtividade por Serviço</h2>
+              <p class="text-xs text-zinc-400">Produtividade = <strong>Produção Calculada − Salário Oficial (Sindicato/UF)</strong>. Digite na Observação (ex.: <span class="mono text-sky-300">2 m² de cerâmica, 5 m de piso, 15 m² de reboco</span>) ou clique em <strong>Serviços</strong> para calcular automaticamente.</p>
+            </div>
+            <span id="payroll-grand-total" class="mono text-sm font-bold px-3.5 py-2 rounded bg-emerald-950/60 border border-emerald-700 text-emerald-300">Total Folha: R$ 0,00</span>
+          </div>
+
+          <!-- UF, Município e Sindicato -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2 border-t border-zinc-800">
+            <label class="text-zinc-400">UF (Estado do Brasil)
+              <select id="payroll-uf" class="mt-1 w-full bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-2"></select>
+            </label>
+            <label class="text-zinc-400">Município da Obra
+              <input id="payroll-city" type="text" value="João Pessoa" class="mt-1 w-full bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-2">
+            </label>
+            <label class="text-zinc-400">Sindicato / CCT de Referência (Informe fonte oficial)
+              <input id="payroll-union" type="text" value="SINTRICOM / CCT Local (valores editáveis pelo titular)" class="mt-1 w-full bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-2">
+            </label>
+          </div>
+        </div>
+
+        <!-- Acervo Completo Editável de Mão de Obra (54+ serviços em ordem alfabética) -->
+        <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-5 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="font-bold text-sm text-white">Acervo de Mão de Obra &amp; Produtividade (<span id="rates-count">54</span> serviços · A–Z · Todos editáveis)</h3>
+              <p class="text-[11px] text-zinc-400">Cada construtora define seus próprios valores unitários (R$). Qualquer alteração recalcula a folha na hora.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+              <input id="inp-rate-search" type="text" placeholder="Filtrar serviço (ex: graute, rufo, vdi...)" class="w-56 bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-1.5">
+              <button id="btn-toggle-rates" type="button" class="px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-zinc-200 hover:bg-zinc-800">Recolher / Expandir</button>
+            </div>
+          </div>
+          <div id="rates-wrapper" class="space-y-3">
+            <div id="rates-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 text-xs max-h-72 overflow-y-auto pr-1"></div>
+            <div class="pt-3 border-t border-zinc-800 grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+              <input id="new-rate-label" type="text" placeholder="Novo serviço (ex: Assentamento de granito)" class="col-span-2 bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-1.5">
+              <input id="new-rate-unit" type="text" value="m²" placeholder="Unidade (m², m, un, kg)" class="bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-1.5">
+              <input id="new-rate-price" type="number" step="0.5" placeholder="Valor R$" class="bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-1.5">
+              <button id="btn-add-rate" type="button" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-sky-300 font-semibold rounded px-3 py-1.5">+ Novo Serviço</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela Principal da Folha de Pagamento -->
+        <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-5 space-y-4">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-zinc-700 text-zinc-400 mono">
+                  <th class="py-2.5 pr-2">Nome</th>
+                  <th class="py-2.5 pr-2">Função</th>
+                  <th class="py-2.5 pr-2">Salário Oficial (R$)</th>
+                  <th class="py-2.5 pr-2">Produção Calc.</th>
+                  <th class="py-2.5 pr-2">Produtividade (Prod − Ofic)</th>
+                  <th class="py-2.5 pr-2">Faltas (dias)</th>
+                  <th class="py-2.5 pr-2">Valor Total</th>
+                  <th class="py-2.5 pr-2 min-w-[260px]">Observação (cálculo automático)</th>
+                  <th class="py-2.5 text-right">Itens</th>
+                </tr>
+              </thead>
+              <tbody id="payroll-tbody" class="divide-y divide-zinc-800"></tbody>
+            </table>
+          </div>
+
+          <!-- Adicionar novo profissional -->
+          <div class="pt-4 border-t border-zinc-800 grid grid-cols-1 sm:grid-cols-6 gap-2 text-xs">
+            <input id="wk-name" type="text" placeholder="Nome do profissional" class="sm:col-span-2 bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-2">
+            <input id="wk-role" type="text" placeholder="Função (ex: Pedreiro)" class="bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-2">
+            <input id="wk-official" type="number" step="10" placeholder="Salário Oficial R$" class="bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-2">
+            <input id="wk-obs" type="text" placeholder="Obs: 10 m2 de reboco, 5 m de piso" class="bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-2">
+            <button id="btn-add-worker" type="button" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 px-3 rounded">+ Adicionar na Folha</button>
+          </div>
+          <p class="text-[11px] text-zinc-500">Aviso: Valores de piso sindical devem ser conferidos na CCT vigente do município/UF; nenhum pagamento/PIX é executado automaticamente.</p>
+        </div>
+
+        <!-- Modal/Drawer Inline para Clicar nos Serviços de Produtividade -->
+        <div id="service-picker-box" class="hidden bg-[#121722] border border-sky-700 rounded-lg p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 id="picker-title" class="font-bold text-sm text-sky-300">Adicionar Serviços de Produtividade</h4>
+            <button id="btn-close-picker" type="button" class="px-2.5 py-1 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-300">Fechar</button>
+          </div>
+          <p class="text-xs text-zinc-400">Clique no serviço e informe a metragem — ele entra direto na Observação e recalcula a Produtividade na hora:</p>
+          <div id="picker-buttons" class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs"></div>
+        </div>
+      </section>
+
+      <!-- 6. CRONOGRAMA & RDO -->
+      <section id="panel-campo" class="tab-panel hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-5 space-y-3 text-xs">
+          <h2 class="font-bold text-sm text-white">Caminho Crítico (CPM) — 18 dias</h2>
+          <div><div class="flex justify-between mb-1"><span>1.1 Fundação (5d · Folga 0d)</span><span class="text-red-400 mono">CRÍTICA</span></div><div class="w-full bg-zinc-900 h-2.5 rounded"><div class="bg-red-500 h-2.5 rounded" style="width:28%"></div></div></div>
+          <div><div class="flex justify-between mb-1"><span>1.2 Estrutura (10d · Folga 0d)</span><span class="text-red-400 mono">CRÍTICA</span></div><div class="w-full bg-zinc-900 h-2.5 rounded"><div class="bg-red-500 h-2.5 rounded ml-[28%]" style="width:55%"></div></div></div>
+          <div><div class="flex justify-between mb-1"><span>1.3 Instalações (4d · Folga 6d)</span><span class="text-emerald-400 mono">FOLGA 6d</span></div><div class="w-full bg-zinc-900 h-2.5 rounded"><div class="bg-emerald-500 h-2.5 rounded ml-[28%]" style="width:22%"></div></div></div>
+          <div><div class="flex justify-between mb-1"><span>1.4 Acabamento (3d · Folga 0d)</span><span class="text-red-400 mono">CRÍTICA</span></div><div class="w-full bg-zinc-900 h-2.5 rounded"><div class="bg-red-500 h-2.5 rounded ml-[83%]" style="width:17%"></div></div></div>
+        </div>
+        <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-5 space-y-3 text-xs">
+          <h2 class="font-bold text-sm text-white">Diário de Obra (RDO)</h2>
+          <div class="flex gap-2">
+            <input id="rdo-occ" type="text" placeholder="Ocorrência do dia..." class="flex-1 bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-1.5">
+            <button id="btn-add-rdo" type="button" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded font-medium">Lançar</button>
+          </div>
+          <div id="rdo-list" class="space-y-2"></div>
+        </div>
+      </section>
+
+      <!-- 7. NF-e & ESTOQUE -->
+      <section id="panel-estoque" class="tab-panel hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-5 space-y-4 text-xs">
+          <h2 class="font-bold text-sm text-white">Conferência NF-e × Recebimento Físico (T6/T7)</h2>
+          <div class="bg-amber-950/40 border border-amber-800 rounded p-3 text-amber-200">NF-e #1234 (250 sacos faturados). Entra no estoque somente o fisicamente aceito.</div>
+          <div class="flex items-end gap-2">
+            <label class="flex-1 text-zinc-400">Aceito físico (SC)<input id="inp-accepted-qty" type="number" value="200" class="mt-1 w-full bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-2"></label>
+            <button id="btn-receive-nfe" type="button" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded font-medium">Receber</button>
+          </div>
+          <div class="flex gap-2 pt-3 border-t border-zinc-800">
+            <input id="inp-adj-new" type="number" value="195" class="w-24 bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-1.5">
+            <input id="inp-adj-reason" type="text" value="Quebra em inventário" class="flex-1 bg-zinc-950 border border-zinc-700 text-white rounded px-2.5 py-1.5">
+            <button id="btn-stock-adj" type="button" class="px-3 py-1.5 bg-zinc-800 border border-zinc-600 text-white rounded">Ajustar</button>
+          </div>
+        </div>
+        <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-5 space-y-3 text-xs">
+          <div class="flex justify-between items-center"><h3 class="font-bold text-sm text-white">Histórico local de movimentações (não imutável)</h3><span id="stock-balance-badge" class="mono font-bold px-2.5 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-700">200 SC</span></div>
+          <div id="stock-history" class="space-y-2 max-h-72 overflow-y-auto"></div>
+        </div>
+      </section>
+
+      <!-- 8. FINANCEIRO & QSE -->
+      <section id="panel-financeiro" class="tab-panel hidden grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs">
+        <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-5 space-y-3">
+          <h2 class="font-bold text-sm text-white">Contratos, Retenção &amp; Fluxo de Caixa</h2>
+          <div class="grid grid-cols-2 gap-3 mono">
+            <div class="bg-zinc-950 border border-zinc-800 rounded p-3"><div class="text-zinc-500">Previsto</div><div class="text-base font-bold text-white mt-1">R$ 10.000,00</div></div>
+            <div class="bg-zinc-950 border border-zinc-800 rounded p-3"><div class="text-zinc-500">Comprometido</div><div class="text-base font-bold text-sky-400 mt-1">R$ 9.500,00</div></div>
+            <div class="bg-zinc-950 border border-zinc-800 rounded p-3"><div class="text-zinc-500">Medido Líq. (-5%)</div><div class="text-base font-bold text-amber-400 mt-1">R$ 1.900,00</div></div>
+            <div class="bg-zinc-950 border border-zinc-800 rounded p-3"><div class="text-zinc-500">PIX Automático</div><div class="text-base font-bold text-zinc-400 mt-1">Desativado</div></div>
+          </div>
+        </div>
+        <div class="bg-[#0e1117] border border-zinc-800 rounded-lg p-5 space-y-2">
+          <h2 class="font-bold text-sm text-white">Qualidade, SST &amp; Equipamentos</h2>
+          <div class="bg-zinc-950 border border-zinc-800 rounded p-3"><strong>Qualidade:</strong> NC #01 — <span class="text-emerald-400 mono">closed c/ evidência</span></div>
+          <div class="bg-zinc-950 border border-zinc-800 rounded p-3"><strong>SST:</strong> Permissão de Trabalho (<span class="mono text-sky-400">NR-18, NR-35</span>) — não substitui profissional habilitado.</div>
+          <div class="bg-zinc-950 border border-zinc-800 rounded p-3"><strong>Equipamentos:</strong> Betoneira 400L — 8,50 h · R$ 225,50 manutenção.</div>
+        </div>
+      </section>
+
+      <!-- 9. LICENCIAMENTO -->
+      <section id="panel-licenciamento" class="tab-panel hidden bg-[#0e1117] border border-zinc-800 rounded-lg p-5 space-y-4 text-xs">
+        <h2 class="font-bold text-sm text-white">Licenciamento Municipal por IBGE — Requisito 28 (T10)</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <select id="sel-ibge" class="bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-2">
+            <option value="2507507">2507507 — João Pessoa / PB</option>
+            <option value="2504009">2504009 — Campina Grande / PB (Sem fonte oficial)</option>
+          </select>
+          <input id="inp-zoning" type="text" placeholder="Zoneamento do lote (opcional)" class="bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-2">
+          <button id="btn-gen-checklist" type="button" class="bg-sky-600 hover:bg-sky-500 text-white rounded font-medium py-2">Consultar</button>
+        </div>
+        <div id="licensing-output" class="bg-zinc-950 border border-zinc-800 rounded p-4 space-y-2"></div>
+      </section>
+
+      <!-- 10. COPILOTO IA -->
+      <section id="panel-copiloto" class="tab-panel hidden bg-[#0e1117] border border-zinc-800 rounded-lg p-5 space-y-4 text-xs">
+        <h2 class="font-bold text-sm text-white">Assistente de regras local (não é IA generativa)</h2>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" data-prompt="Resumo da folha, materiais e estoque" class="ai-preset px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded">Resumo da obra</button>
+          <button type="button" data-prompt="Aprovar pagamento e executar PIX" class="ai-preset px-3 py-1.5 bg-red-950/60 text-red-300 border border-red-800 rounded">Testar bloqueio PIX</button>
+        </div>
+        <div class="flex gap-2">
+          <input id="inp-ai-prompt" type="text" placeholder="Pergunte sobre a obra..." class="flex-1 bg-zinc-950 border border-zinc-700 text-white rounded px-3 py-2">
+          <button id="btn-run-ai" type="button" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded font-medium">Consultar</button>
+        </div>
+        <div id="ai-output" class="bg-zinc-950 border border-zinc-800 rounded p-4 space-y-2"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+
+    const DEFAULT_RATES = [
+      { key: "algeroz", label: "Algeroz — instalação", unit: "m", price: 35.00, aliases: ["algeroz"] },
+      { key: "alvenaria_blocos", label: "Assentamento de blocos (alvenaria)", unit: "m²", price: 35.00, aliases: ["alvenaria", "assentamento de blocos", "assentamento de bloco", "bloco", "blocos"] },
+      { key: "caixas_4x2", label: "Assentamento de caixas 4x2 / 4x4", unit: "un", price: 18.00, aliases: ["caixa 4x2", "caixas 4x2", "caixa 4x4", "caixas 4x4"] },
+      { key: "contramarco", label: "Assentamento de contramarco", unit: "un", price: 65.00, aliases: ["contramarco", "contramarca"] },
+      { key: "pastilha", label: "Assentamento de pastilha", unit: "m²", price: 85.00, aliases: ["pastilha", "pastilhas"] },
+      { key: "piso", label: "Assentamento de piso / porcelanato", unit: "m²", price: 40.00, aliases: ["piso", "porcelanato"] },
+      { key: "ceramica", label: "Assentamento de cerâmica / revestimento", unit: "m²", price: 45.00, aliases: ["ceramica", "cerâmica", "revestimento"] },
+      { key: "rodape", label: "Assentamento de rodapé", unit: "m", price: 14.00, aliases: ["rodape", "rodapé"] },
+      { key: "soleira", label: "Assentamento de soleira e peitoril", unit: "m", price: 38.00, aliases: ["soleira", "peitoril"] },
+      { key: "aterro", label: "Aterro e compactação", unit: "m³", price: 42.00, aliases: ["aterro", "compactacao", "compactação"] },
+      { key: "balancim", label: "Balancim — montagem e desmontagem", unit: "un", price: 450.00, aliases: ["balancim", "balancia", "balancinho"] },
+      { key: "calha", label: "Calha — instalação", unit: "m", price: 38.00, aliases: ["calha", "calhas"] },
+      { key: "capiaco", label: "Capiaço / cinta de amarração", unit: "m", price: 26.00, aliases: ["capiaco", "capiaço", "cinta"] },
+      { key: "chapisco", label: "Chapisco interno / externo", unit: "m²", price: 10.00, aliases: ["chapisco"] },
+      { key: "coberta", label: "Coberta / telhado completo", unit: "m²", price: 68.00, aliases: ["coberta", "telhado", "cobertura"] },
+      { key: "concretagem", label: "Concretagem (lajes, vigas, pilares)", unit: "m³", price: 110.00, aliases: ["concretagem", "concreto"] },
+      { key: "contrapiso", label: "Contrapiso regularizado", unit: "m²", price: 28.00, aliases: ["contrapiso"] },
+      { key: "corte_dobra_ferro", label: "Corte e dobra de ferro / armação", unit: "kg", price: 3.20, aliases: ["corte e dobra", "ferro", "aco", "aço", "armacao", "armação"] },
+      { key: "demolicao", label: "Demolição manual", unit: "m³", price: 95.00, aliases: ["demolicao", "demolição"] },
+      { key: "eletricista", label: "Empreitada de eletricista (ponto)", unit: "pt", price: 75.00, aliases: ["eletricista", "eletrica", "elétrica", "ponto eletrico"] },
+      { key: "encanador", label: "Empreitada de encanador / hidráulica", unit: "pt", price: 85.00, aliases: ["encanador", "hidraulica", "hidráulica", "ponto hidraulico"] },
+      { key: "escavacao", label: "Escavação manual / valas", unit: "m³", price: 60.00, aliases: ["escavacao", "escavação", "vala"] },
+      { key: "esquadrias", label: "Esquadrias — instalação portas/janelas", unit: "un", price: 140.00, aliases: ["esquadria", "esquadrias", "porta", "janela"] },
+      { key: "esquadro", label: "Esquadro, prumo e taliscamento", unit: "m²", price: 9.00, aliases: ["esquadro", "taliscamento", "prumo"] },
+      { key: "estucamento", label: "Estucamento de concreto aparente", unit: "m²", price: 22.00, aliases: ["estucamento", "estuque"] },
+      { key: "fachada", label: "Fachada — emboço / reboco externo", unit: "m²", price: 48.00, aliases: ["fachada"] },
+      { key: "fachada_pintura", label: "Fachada — pintura / textura externa", unit: "m²", price: 26.00, aliases: ["pintura de fachada", "textura de fachada"] },
+      { key: "forma", label: "Fôrma e desforma de madeira", unit: "m²", price: 44.00, aliases: ["forma", "fôrma", "desforma", "carpintaria"] },
+      { key: "forro_gesso", label: "Forro de gesso / drywall", unit: "m²", price: 36.00, aliases: ["forro", "drywall", "forro de gesso"] },
+      { key: "gesso_corrido", label: "Gesso corrido / revestimento em gesso", unit: "m²", price: 24.00, aliases: ["gesso", "gesso corrido"] },
+      { key: "graute", label: "Graute (grout) em alvenaria estrutural", unit: "pt", price: 16.00, aliases: ["graute", "grout", "groaut"] },
+      { key: "impermeabilizacao", label: "Impermeabilização (manta / polímero)", unit: "m²", price: 34.00, aliases: ["impermeabilizacao", "impermeabilização", "manta"] },
+      { key: "bancada", label: "Instalação de bancada granito/mármore", unit: "un", price: 180.00, aliases: ["bancada", "pia"] },
+      { key: "loucas_metais", label: "Instalação de louças e metais", unit: "un", price: 65.00, aliases: ["louca", "louças", "bacia", "torneira", "metais"] },
+      { key: "luminarias", label: "Instalação de luminárias / tomadas", unit: "un", price: 22.00, aliases: ["luminaria", "luminárias", "tomada", "tomadas"] },
+      { key: "quadro_distribuicao", label: "Instalação de quadro de distribuição (QDC)", unit: "un", price: 280.00, aliases: ["quadro de distribuicao", "quadro de distribuição", "qdc"] },
+      { key: "quadro_vdi", label: "Instalação de quadro VDI / telecom", unit: "un", price: 240.00, aliases: ["vdi", "quadro vdi"] },
+      { key: "junta_dilatacao", label: "Junta de dilatação — execução e selagem", unit: "m", price: 28.00, aliases: ["junta de dilatacao", "junta de dilatação", "junta"] },
+      { key: "laje_premoldada", label: "Laje pré-moldada — montagem e escora", unit: "m²", price: 38.00, aliases: ["laje", "laje premoldada"] },
+      { key: "limpeza_obra", label: "Limpeza final / pós-obra", unit: "m²", price: 12.00, aliases: ["limpeza"] },
+      { key: "marcacao_alvenaria", label: "Marcação de alvenaria (1ª fiada)", unit: "m", price: 15.00, aliases: ["marcacao", "marcação", "marcacao de alvenaria", "marcação de alvenaria"] },
+      { key: "massa_corrida", label: "Massa corrida / acrílica (2 demãos)", unit: "m²", price: 16.00, aliases: ["massa corrida", "massa acrilica"] },
+      { key: "muro_arrimo", label: "Muro de arrimo / contenção", unit: "m²", price: 75.00, aliases: ["muro de arrimo", "arrimo", "contencao"] },
+      { key: "pavimentacao", label: "Pavimentação / piso intertravado", unit: "m²", price: 36.00, aliases: ["pavimentacao", "pavimentação", "intertravado", "calcada", "calçada"] },
+      { key: "pintura", label: "Pintura interna (selador + 2 demãos)", unit: "m²", price: 18.00, aliases: ["pintura"] },
+      { key: "platibanda", label: "Platibanda — execução e acabamento", unit: "m²", price: 42.00, aliases: ["platibanda"] },
+      { key: "reboco", label: "Reboco / emboço interno", unit: "m²", price: 32.00, aliases: ["reboco", "emboco", "emboço"] },
+      { key: "rejuntamento", label: "Rejuntamento de pisos e paredes", unit: "m²", price: 8.50, aliases: ["rejunte", "rejuntamento"] },
+      { key: "rufo", label: "Rufo metálico — instalação", unit: "m", price: 32.00, aliases: ["rufo", "rufos"] },
+      { key: "sanca", label: "Sanca / moldura de gesso", unit: "m", price: 25.00, aliases: ["sanca", "moldura"] },
+      { key: "serralheria", label: "Serralheria — instalação de portões/grades", unit: "un", price: 220.00, aliases: ["serralheria", "portao", "portão", "grade"] },
+      { key: "textura", label: "Textura / grafiato", unit: "m²", price: 22.00, aliases: ["textura", "grafiato"] },
+      { key: "tubulacao_esgoto", label: "Tubulação de esgoto / águas pluviais", unit: "m", price: 29.00, aliases: ["tubulacao", "tubulação", "esgoto", "pluvial"] },
+      { key: "verga_contraverga", label: "Verga e contraverga", unit: "m", price: 24.00, aliases: ["verga", "contraverga"] }
+    ];
+
+    const DEFAULT_DB = {
+      alfa: {
+        name: "Construtora Alfa Demo Ltda",
+        uf: "PB",
+        city: "João Pessoa",
+        union: "SINTRICOM / CCT Local (editável pelo titular)",
+        rates: JSON.parse(JSON.stringify(DEFAULT_RATES)),
+        projects: [
+          { code: "ALFA-001", name: "Residencial Horizonte Demo", uf: "PB", status: "active", hierarchy: "Bloco A · 1º Pav · Apto 101" }
+        ],
+        documents: [
+          { id: "doc-synth-1", code: "ARQ-01", disc: "arquitetura", rev: "R00", filename: "ARQ-01_Planta_Sintetica_Demo_R00.pdf", sha256: "sintetica-demo-sha256" }
+        ],
+        measurements: [
+          { label: "Parede Norte (Ref. T3)", value: "5.0000 m", formula: "283.4646 pt × 0.01763889 = 5.0000 m" }
+        ],
+        materials: [
+          { name: "Cimento Portland CP II 50kg", net: 220, unit: "SC", waste: 5, stock: 200, unitCost: 34.00 },
+          { name: "Bloco Estrutural 14×19×29 cm", net: 1250, unit: "UN", waste: 8, stock: 400, unitCost: 4.20 },
+          { name: "Areia Média Lavada", net: 18, unit: "m3", waste: 10, stock: 6, unitCost: 115.00 },
+          { name: "Vergalhão CA-50 10 mm", net: 85, unit: "BR", waste: 6, stock: 30, unitCost: 46.50 }
+        ],
+        workers: [
+          { id: "w1", name: "Carlos Silva (Demo)", role: "Pedreiro", officialSalary: 1950.00, absences: 0, obs: "30 m2 de reboco, 25 m2 de ceramica, 10 m de piso" },
+          { id: "w2", name: "Marcos Lima (Demo)", role: "Pedreiro", officialSalary: 1950.00, absences: 1, obs: "40 m2 de contrapiso, 25 m2 de fachada" },
+          { id: "w3", name: "João Servente (Demo)", role: "Servente", officialSalary: 1520.00, absences: 0, obs: "50 m2 de alvenaria" }
+        ],
+        rdos: [{ id: "RDO-01", date: "2026-11-23", text: "Alvenaria 1º Pavimento — 32 m²", approved: true }],
+        stockBalance: 200,
+        stockHistory: [{ type: "receipt", delta: "+200 SC", prev: 0, next: 200, note: "NF-e #1234 (250 faturados / 200 aceitos · Divergência 50 SC)" }],
+        divergences: 1
+      },
+      beta: {
+        name: "Construtora Beta Demo Ltda",
+        uf: "PE",
+        city: "Recife",
+        union: "Sindicato Local (pendente CCT)",
+        rates: JSON.parse(JSON.stringify(DEFAULT_RATES)),
+        projects: [{ code: "BETA-001", name: "Edifício Sol Nascente Demo", uf: "PE", status: "active", hierarchy: "Ambiente isolado do Tenant B" }],
+        documents: [], measurements: [], materials: [], workers: [], rdos: [], stockBalance: 0, stockHistory: [], divergences: 0
+      }
+    };
+
+    const STORAGE_KEY = "meb_preview_state_v4";
+    const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const fileDbPromise = new Promise((resolve,reject) => { const req=indexedDB.open('meb_local_files_v1',1); req.onupgradeneeded=()=>req.result.createObjectStore('files'); req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error); });
+    async function fileStore(id,blob) { const db=await fileDbPromise; return new Promise((resolve,reject)=>{const tx=db.transaction('files','readwrite');tx.objectStore('files').put(blob,id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);}); }
+    async function fileLoad(id) {const db=await fileDbPromise;return new Promise((resolve,reject)=>{const r=db.transaction('files').objectStore('files').get(id);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
+    async function restoreDocument(id) {if(runtimeFiles[id])return runtimeFiles[id];const blob=await fileLoad(id);if(!blob)return null;runtimeFiles[id]=blob;const doc=DB[state.tenant].documents.find(x=>x.id===id);if(!doc)return blob;if(/\.pdf$/i.test(doc.filename)&&window.pdfjsLib){runtimePdfs[id]=await pdfjsLib.getDocument({data:new Uint8Array(await blob.arrayBuffer()),disableWorker:true}).promise;await renderPdfPageToImage(id,1);}else if(/\.(png|jpe?g)$/i.test(doc.filename)){const img=new Image();img.onload=()=>{runtimeImages[id]=img;drawPlan();};img.src=URL.createObjectURL(blob);}return blob;}
+    function auditEvent(type,details){const t=DB[state.tenant];t.audit=t.audit||[];t.audit.unshift({type,details,at:new Date().toISOString(),tenant:state.tenant});}
+    
+    let DB = JSON.parse(JSON.stringify(DEFAULT_DB));
+    const runtimeImages = {};
+    const state = { tenant: "alfa", role: "lead_engineer", activeTab: "medicao", scope: "labor_only", zoom: 1.0, rot: 0, draftPts: [], activeDocId: "doc-synth-1", ptPerMeter: 283.464567 / 5.0, pickerWorkerId: null };
+
+    // Restaura estado salvo (garante que nunca volta para o início nem apaga dados!)
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      if (saved && saved.DB && saved.DB.alfa && saved.DB.beta) {
+        DB = saved.DB;
+        if (saved.activeTab) state.activeTab = saved.activeTab;
+        if (saved.tenant && DB[saved.tenant]) state.tenant = saved.tenant;
+      }
+    } catch (_) {}
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ DB, activeTab: state.activeTab, tenant: state.tenant }));
+      } catch (_) {}
+    }
+
+    const $ = (id) => document.getElementById(id);
+    const fmtBRL = (v) => "R$ " + Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const toast = (msg) => {
+      const el = $("toast"); el.textContent = msg; el.classList.remove("hidden");
+      clearTimeout(el._t); el._t = setTimeout(() => el.classList.add("hidden"), 3500);
+    };
+    const isReadOnly = () => {
+      if (state.role === "read_only") { toast("Bloqueado (RBAC 403): perfil Somente Leitura não pode alterar dados."); return true; }
+      return false;
+    };
+
+    // Parser automático da Observação -> calcula produção a partir de "2 m² de cerâmica, 5 m de piso..."
+    function normalizeText(str) {
+      return (str || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function parseObservationProduction(obsText, rates) {
+      const clean=normalizeText(obsText);let total=0;const breakdown=[];
+      const entries=[];
+      for(const r of rates) for(const alias of r.aliases||[]) entries.push({r,alias:normalizeText(alias)});
+      entries.sort((a,b)=>b.alias.length-a.alias.length);
+      const occupied=[];
+      for(const {r,alias} of entries){
+        const escaped=alias.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+        const rx=new RegExp('(?:^|[^\\w])([0-9]+(?:[.,][0-9]+)?)\\s*(?:m2|m²|m3|m³|m|un|kg|pt)?\\s*(?:de\\s+)?'+escaped+'\\b','g');
+        let m;while((m=rx.exec(clean))!==null){const pos=m.index,end=pos+m[0].length;if(occupied.some(([a,b])=>pos<b&&end>a))continue;const qty=Number(m[1].replace(',','.'));if(!Number.isFinite(qty)||qty<=0)continue;occupied.push([pos,end]);const sub=qty*Number(r.price||0);total+=sub;breakdown.push(`${qty} ${r.unit} ${escapeHTML(r.label)} (${fmtBRL(sub)})`);}
+      }
+      return {total,breakdown};
+    }
+
+    function calcWorkerRow(w, rates) {
+      const official = Math.max(0, Number(w.officialSalary) || 0);
+      const absences = Math.max(0, Number(w.absences) || 0);
+      const parsed = parseObservationProduction(w.obs, rates);
+      const prodCalc = parsed.total;
+      const productivity = prodCalc - official; // Regra exata pedida: Produção Calculada − Salário Oficial
+      const absenceDeduct = (official / 30) * absences;
+      const finalValue = Math.max(0, official + Math.max(0, productivity) - absenceDeduct);
+      return { official, absences, prodCalc, productivity, absenceDeduct, finalValue, breakdown: parsed.breakdown };
+    }
+
+    $("btn-backup").addEventListener("click",()=>{const blob=new Blob([JSON.stringify({schema:1,exportedAt:new Date().toISOString(),DB},null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="meb_backup_dados_"+new Date().toISOString().slice(0,10)+".json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),3000);toast("Backup de dados exportado. Arquivos PDF/imagens não incluídos.");});
+    // Navegação (persiste aba ativa!)
+    function switchTab(tabId) {
+      state.activeTab = tabId;
+      document.querySelectorAll(".nav-btn").forEach((b) => {
+        const active = b.dataset.tab === tabId;
+        b.className = active
+          ? "nav-btn text-left pl-3 pr-2 py-1.5 rounded text-xs font-semibold bg-zinc-800 text-sky-300 border-l-2 border-sky-400"
+          : "nav-btn text-left pl-3 pr-2 py-1.5 rounded text-xs font-medium text-zinc-400 hover:bg-zinc-900 hover:text-white";
+      });
+      document.querySelectorAll(".tab-panel").forEach((p) => p.classList.add("hidden"));
+      const panel = $("panel-" + tabId);
+      if (panel) panel.classList.remove("hidden");
+      if (tabId === "medicao") drawPlan();
+      saveState();
+    }
+
+    $("btn-toggle-menu").addEventListener("click", () => $("sidebar").classList.toggle("hidden"));
+    document.querySelectorAll(".nav-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        switchTab(btn.dataset.tab);
+        if (window.innerWidth < 1024) $("sidebar").classList.add("hidden");
+      });
+    });
+
+    $("tenant-select").addEventListener("change", (e) => {
+      state.tenant = e.target.value; state.draftPts = []; renderAll(); saveState();
+      toast(`Organização: ${DB[state.tenant].name}`);
+    });
+    $("role-select").addEventListener("change", (e) => {
+      state.role = e.target.value;
+      toast(state.role === "read_only" ? "Perfil Somente Leitura ativo." : "Perfil Engenheiro Responsável ativo.");
+    });
+
+    // UF Select
+    $("payroll-uf").innerHTML = UFS.map((uf) => `<option value="${uf}" class="bg-zinc-950">${uf}</option>`).join("");
+    $("payroll-uf").addEventListener("change", (e) => { DB[state.tenant].uf = e.target.value; saveState(); toast(`UF da folha definida para ${e.target.value}.`); });
+    $("payroll-city").addEventListener("input", (e) => { DB[state.tenant].city = e.target.value; saveState(); });
+    $("payroll-union").addEventListener("input", (e) => { DB[state.tenant].union = e.target.value; saveState(); });
+
+    // Tabela de valores unitários de produtividade (sem reconstruir inputs ao digitar)
+    function renderRatesGrid() {
+      const rates = DB[state.tenant].rates;
+      rates.sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+      $("rates-count").textContent = rates.length;
+      const q = normalizeText($("inp-rate-search") ? $("inp-rate-search").value : "");
+      $("rates-grid").innerHTML = rates.map((r, idx) => {
+        if (q && !normalizeText(r.label).includes(q) && !r.aliases.some((al) => normalizeText(al).includes(q))) return "";
+        return `
+          <label class="bg-zinc-950 border border-zinc-800 rounded p-2 block">
+            <div class="text-zinc-200 font-medium truncate" title="${escapeHTML(r.label)}">${escapeHTML(r.label)} <span class="text-zinc-500">(${r.unit})</span></div>
+            <div class="flex items-center gap-1 mt-1">
+              <span class="text-zinc-500 mono">R$</span>
+              <input data-rate-idx="${idx}" type="number" step="0.5" value="${Number(r.price).toFixed(2)}" class="rate-input w-full bg-transparent text-sky-300 mono font-semibold focus:outline-none">
+            </div>
+          </label>
+        `;
+      }).join("");
+
+      document.querySelectorAll(".rate-input").forEach((inp) => {
+        inp.addEventListener("input", () => {
+          if (isReadOnly()) return;
+          const idx = Number(inp.dataset.rateIdx);
+          DB[state.tenant].rates[idx].price = Math.max(0, parseFloat(inp.value) || 0);
+          updatePayrollNumbersOnly();
+          saveState();
+        });
+      });
+    }
+
+    $("inp-rate-search").addEventListener("input", renderRatesGrid);
+    $("btn-toggle-rates").addEventListener("click", () => $("rates-wrapper").classList.toggle("hidden"));
+    $("btn-goto-projects-upload").addEventListener("click", () => switchTab("medicao"));
+
+    $("btn-add-rate").addEventListener("click", () => {
+      if (isReadOnly()) return;
+      const label = $("new-rate-label").value.trim();
+      const unit = $("new-rate-unit").value.trim() || "m²";
+      const price = Math.max(0, parseFloat($("new-rate-price").value) || 0);
+      if (!label) { toast("Informe o nome do serviço."); return; }
+      const key = "srv_" + Date.now();
+      DB[state.tenant].rates.push({ key, label, unit, price, aliases: [label.toLowerCase()] });
+      $("new-rate-label").value = ""; $("new-rate-price").value = "";
+      renderRatesGrid(); updatePayrollNumbersOnly(); saveState();
+      toast(`Serviço "${label}" adicionado ao acervo.`);
+    });
+
+    // Atualiza APENAS os números calculados das linhas da folha (NUNCA destrói o foco do campo que você está digitando!)
+    function updatePayrollNumbersOnly() {
+      const t = DB[state.tenant];
+      let grandTotal = 0;
+      t.workers.forEach((w) => {
+        const c = calcWorkerRow(w, t.rates);
+        grandTotal += c.finalValue;
+        const elProd = document.getElementById(`cell-prod-${w.id}`);
+        const elDiff = document.getElementById(`cell-diff-${w.id}`);
+        const elTot = document.getElementById(`cell-tot-${w.id}`);
+        const elHint = document.getElementById(`cell-hint-${w.id}`);
+        if (elProd) elProd.textContent = fmtBRL(c.prodCalc);
+        if (elDiff) {
+          elDiff.textContent = (c.productivity >= 0 ? "+" : "") + fmtBRL(c.productivity);
+          elDiff.className = `py-2.5 pr-2 mono font-semibold ${c.productivity >= 0 ? "text-emerald-400" : "text-amber-400"}`;
+        }
+        if (elTot) elTot.textContent = fmtBRL(c.finalValue);
+        if (elHint) elHint.textContent = c.breakdown.length ? c.breakdown.join(" + ") : "Digite ex.: 2 m² de cerâmica, 5 m de piso";
+      });
+      $("payroll-grand-total").textContent = `Total Folha: ${fmtBRL(grandTotal)}`;
+      $("kpi-payroll").textContent = fmtBRL(grandTotal);
+    }
+
+    function renderPayrollTable() {
+      const t = DB[state.tenant];
+      $("payroll-uf").value = t.uf || "PB";
+      $("payroll-city").value = t.city || "";
+      $("payroll-union").value = t.union || "";
+
+      t.workers.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+      const tb = $("payroll-tbody");
+      if (!t.workers.length) {
+        tb.innerHTML = '<tr><td colspan="9" class="py-4 text-center text-zinc-500">Nenhum profissional cadastrado neste tenant.</td></tr>';
+        updatePayrollNumbersOnly();
+        return;
+      }
+
+      tb.innerHTML = t.workers.map((w) => `
+        <tr data-wid="${w.id}">
+          <td class="py-2.5 pr-2 font-medium text-white">${escapeHTML(w.name)}</td>
+          <td class="py-2.5 pr-2 text-zinc-400">${escapeHTML(w.role)}</td>
+          <td class="py-2.5 pr-2">
+            <input data-wid="${w.id}" data-field="officialSalary" type="number" step="10" value="${w.officialSalary}" class="wk-edit w-24 bg-zinc-950 border border-zinc-700 text-zinc-100 rounded px-2 py-1 mono">
+          </td>
+          <td id="cell-prod-${w.id}" class="py-2.5 pr-2 mono text-sky-300">R$ 0,00</td>
+          <td id="cell-diff-${w.id}" class="py-2.5 pr-2 mono font-semibold">R$ 0,00</td>
+          <td class="py-2.5 pr-2">
+            <input data-wid="${w.id}" data-field="absences" type="number" min="0" max="30" step="1" value="${w.absences}" class="wk-edit w-14 bg-zinc-950 border border-zinc-700 text-zinc-100 rounded px-2 py-1 mono">
+          </td>
+          <td id="cell-tot-${w.id}" class="py-2.5 pr-2 mono font-bold text-white">R$ 0,00</td>
+          <td class="py-2.5 pr-2">
+            <input data-wid="${w.id}" data-field="obs" type="text" value="${(w.obs || "").replace(/"/g, "&quot;")}" placeholder="Ex: 2 m² de cerâmica, 5 m de piso" class="wk-edit w-full bg-zinc-950 border border-zinc-700 text-zinc-100 rounded px-2.5 py-1 text-xs">
+            <div id="cell-hint-${w.id}" class="text-[10px] text-zinc-500 mt-1 mono"></div>
+          </td>
+          <td class="py-2.5 text-right">
+            <button type="button" data-open-picker="${w.id}" class="open-picker-btn px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-sky-300 rounded text-[11px] font-medium">+ Serviços</button>
+          </td>
+        </tr>
+      `).join("");
+
+      document.querySelectorAll(".wk-edit").forEach((inp) => {
+        inp.addEventListener("input", () => {
+          if (isReadOnly()) return;
+          const w = DB[state.tenant].workers.find((x) => x.id === inp.dataset.wid);
+          if (!w) return;
+          const field = inp.dataset.field;
+          w[field] = field === "obs" ? inp.value : (parseFloat(inp.value) || 0);
+          updatePayrollNumbersOnly();
+          saveState();
+        });
+      });
+
+      document.querySelectorAll(".open-picker-btn").forEach((btn) => {
+        btn.addEventListener("click", () => openServicePicker(btn.dataset.openPicker));
+      });
+
+      updatePayrollNumbersOnly();
+    }
+
+    function openServicePicker(workerId) {
+      const w = DB[state.tenant].workers.find((x) => x.id === workerId);
+      if (!w) return;
+      state.pickerWorkerId = workerId;
+      $("picker-title").textContent = `Lançar Serviços de Produtividade — ${escapeHTML(w.name)}`;
+      $("picker-buttons").innerHTML = DB[state.tenant].rates.map((r) => `
+        <div class="bg-zinc-950 border border-zinc-800 rounded p-2.5 flex flex-col gap-1.5">
+          <div class="font-semibold text-white">${escapeHTML(r.label)} <span class="mono text-sky-400">(${fmtBRL(r.price)}/${r.unit})</span></div>
+          <div class="flex gap-1.5">
+            <input id="pick-qty-${r.key}" type="number" step="0.5" value="5" class="w-16 bg-zinc-900 border border-zinc-700 text-white rounded px-2 py-1 mono">
+            <button type="button" data-pick-key="${r.key}" class="pick-add-btn flex-1 bg-sky-600 hover:bg-sky-500 text-white rounded px-2 py-1 font-medium">Adicionar</button>
+          </div>
+        </div>
+      `).join("");
+      $("service-picker-box").classList.remove("hidden");
+
+      document.querySelectorAll(".pick-add-btn").forEach((b) => {
+        b.addEventListener("click", () => {
+          if (isReadOnly()) return;
+          const key = b.dataset.pickKey;
+          const rate = DB[state.tenant].rates.find((r) => r.key === key);
+          const qty = Math.max(0, parseFloat($(`pick-qty-${key}`).value) || 0);
+          if (!rate || qty <= 0) return;
+          const piece = `${qty} ${rate.unit} de ${rate.label.toLowerCase()}`;
+          w.obs = w.obs && w.obs.trim() ? `${w.obs.trim()}, ${piece}` : piece;
+          const obsInput = document.querySelector(`input.wk-edit[data-wid="${w.id}"][data-field="obs"]`);
+          if (obsInput) obsInput.value = w.obs;
+          updatePayrollNumbersOnly();
+          saveState();
+          toast(`Adicionado: ${piece} para ${escapeHTML(w.name)}.`);
+        });
+      });
+    }
+
+    $("btn-close-picker").addEventListener("click", () => $("service-picker-box").classList.add("hidden"));
+
+    $("btn-add-worker").addEventListener("click", () => {
+      if (isReadOnly()) return;
+      const name = $("wk-name").value.trim();
+      const role = $("wk-role").value.trim() || "Pedreiro";
+      const official = parseFloat($("wk-official").value) || 1950;
+      const obs = $("wk-obs").value.trim();
+      if (!name) { toast("Informe o nome do profissional."); return; }
+      DB[state.tenant].workers.push({ id: "w" + Date.now(), name, role, officialSalary: official, absences: 0, obs });
+      $("wk-name").value = ""; $("wk-role").value = ""; $("wk-official").value = ""; $("wk-obs").value = "";
+      renderPayrollTable();
+      saveState();
+      toast(`${name} adicionado à folha.`);
+    });
+
+    // Obras
+    function renderObras() {
+      const t = DB[state.tenant];
+      const count = t.projects.length, extra = Math.max(0, count - 5);
+      $("kpi-projects").textContent = count;
+      $("kpi-tenant-label").textContent = t.name;
+      $("kpi-billing").textContent = fmtBRL(200 + extra * 50);
+      $("kpi-billing-sub").textContent = extra > 0 ? `5 incluídas + ${extra} extra × R$ 50` : "Até 5 obras · +R$ 50/extra";
+      $("kpi-divergences").textContent = t.divergences;
+      $("projects-container").innerHTML = t.projects.map((p) => `
+        <div class="py-3 flex items-center justify-between gap-2">
+          <div><div class="font-semibold text-sm text-white"><span class="mono text-sky-400">${escapeHTML(p.code)}</span> — ${escapeHTML(p.name)}</div><div class="text-xs text-zinc-400">${escapeHTML(p.hierarchy)} · UF: ${p.uf}</div></div>
+          <span class="text-[11px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 mono">${p.status}</span>
+        </div>
+      `).join("");
+    }
+    $("btn-save-project").addEventListener("click", () => {
+      if (isReadOnly()) return;
+      const code = $("inp-proj-code").value.trim().toUpperCase(), name = $("inp-proj-name").value.trim();
+      if (!code || !name) { toast("Preencha código e nome da obra."); return; }
+      DB[state.tenant].projects.push({ code, name, uf: $("inp-proj-uf").value.trim().toUpperCase() || "PB", status: "active", hierarchy: "Nova estrutura física" });
+      $("inp-proj-code").value = ""; $("inp-proj-name").value = "";
+      renderObras(); saveState(); toast("Obra salva.");
+    });
+
+    // Materiais
+    function renderMaterials() {
+      const list = DB[state.tenant].materials; let grand = 0;
+      $("materials-tbody").innerHTML = list.length ? list.map((m) => {
+        const buy = Math.ceil(m.net * (1 + m.waste / 100)), toBuy = Math.max(0, buy - m.stock), sub = toBuy * m.unitCost;
+        grand += sub;
+        return `<tr>
+          <td class="py-2 pr-3 font-medium text-white">${escapeHTML(m.name)}</td>
+          <td class="py-2 pr-3 mono text-zinc-300">${m.net} ${escapeHTML(m.unit)}</td>
+          <td class="py-2 pr-3 mono text-amber-300">+${m.waste}%</td>
+          <td class="py-2 pr-3 mono text-sky-300">${buy} ${escapeHTML(m.unit)}</td>
+          <td class="py-2 pr-3 mono text-zinc-400">${m.stock} ${escapeHTML(m.unit)}</td>
+          <td class="py-2 pr-3 mono text-emerald-300 font-semibold">${toBuy} ${escapeHTML(m.unit)}</td>
+          <td class="py-2 pr-3 mono text-zinc-400">${fmtBRL(m.unitCost)}</td>
+          <td class="py-2 text-right mono text-white font-semibold">${fmtBRL(sub)}</td>
+        </tr>`;
+      }).join("") : '<tr><td colspan="8" class="py-4 text-center text-zinc-500">Sem materiais neste tenant.</td></tr>';
+      $("mat-total-cost").textContent = `Saldo a Comprar: ${fmtBRL(grand)}`;
+    }
+    $("btn-add-material").addEventListener("click", () => {
+      if (isReadOnly()) return;
+      const name = $("mat-name").value.trim();
+      if (!name) { toast("Informe o nome do material."); return; }
+      DB[state.tenant].materials.push({
+        name, net: Math.max(0, parseFloat($("mat-qty").value) || 0), unit: $("mat-unit").value.trim() || "UN",
+        waste: Math.max(0, parseFloat($("mat-waste").value) || 0), stock: 0, unitCost: Math.max(0, parseFloat($("mat-price").value) || 0)
+      });
+      $("mat-name").value = ""; $("mat-qty").value = ""; $("mat-price").value = "";
+      renderMaterials(); saveState(); toast("Material adicionado.");
+    });
+
+    // Orçamento
+    function recalcBudget() {
+      const qty = Math.max(0, parseFloat($("b-qty").value) || 0), hhU = Math.max(0, parseFloat($("b-hh").value) || 0);
+      const moC = Math.max(0, parseFloat($("b-mo").value) || 0), bdiP = Math.max(0, parseFloat($("b-bdi").value) || 0);
+      const unitMaterialCost=Number($("b-material-unit").value);
+      const needsMaterial=state.scope!=="labor_only";
+      if(needsMaterial&&(!Number.isFinite(unitMaterialCost)||unitMaterialCost<0||$("b-material-unit").value.trim()==="")){$("budget-result").textContent="Informe o custo real de materiais por m² antes de calcular. Nenhum preço foi presumido.";return;}
+      const mat=needsMaterial?qty*unitMaterialCost:0;
+      const hh = state.scope !== "materials_only" ? qty * hhU : 0;
+      const mo = hh * moC, dir = mat + mo, bdiV = dir * (bdiP / 100), sale = dir + bdiV;
+      $("budget-result").innerHTML = `
+        <div>Escopo: <strong class="text-sky-400">${state.scope}</strong></div>
+        <div>Materiais: <strong>${fmtBRL(mat)}</strong> · Mão de Obra (${hh.toFixed(2)} HH): <strong>${fmtBRL(mo)}</strong></div>
+        <div>Custo Direto: <strong>${fmtBRL(dir)}</strong> · BDI (${bdiP}%): <strong class="text-amber-300">${fmtBRL(bdiV)}</strong></div>
+        <div class="text-emerald-400 text-sm pt-1 border-t border-zinc-800">Preço de Venda: <strong>${fmtBRL(sale)}</strong></div>
+      `;
+    }
+    ["b-qty", "b-hh", "b-mo", "b-bdi", "b-material-unit"].forEach((id) => $(id).addEventListener("input", recalcBudget));
+    document.querySelectorAll(".scope-btn").forEach((b) => b.addEventListener("click", () => {
+      state.scope = b.dataset.scope;
+      document.querySelectorAll(".scope-btn").forEach((x) => { x.className = "scope-btn px-3 py-1.5 rounded text-xs font-medium bg-zinc-900 border border-zinc-700 text-zinc-300"; });
+      b.className = "scope-btn px-3 py-1.5 rounded text-xs font-medium bg-sky-600 text-white";
+      recalcBudget();
+    }));
+
+    // Projetos & Canvas
+    const canvas = $("plan-canvas"), ctx = canvas.getContext("2d"), DOC_W = 640, DOC_H = 420;
+    const getActiveDoc = () => DB[state.tenant].documents.find((d) => d.id === state.activeDocId) || DB[state.tenant].documents[0] || null;
+    function renderDocsLibrary() {
+      const docs = DB[state.tenant].documents;
+      $("sel-active-doc").innerHTML = docs.length ? docs.map((d) => `<option value="${d.id}" ${d.id === state.activeDocId ? "selected" : ""}>${escapeHTML(d.code)} · ${escapeHTML(d.rev)} (${escapeHTML(d.filename)})</option>`).join("") : '<option value="">Sem pranchas</option>';
+      $("docs-library").innerHTML = docs.map((d) => `
+        <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-zinc-950 border border-zinc-800 text-zinc-300 mono">
+          <span>${escapeHTML(d.code)} ${escapeHTML(d.rev)} · ${escapeHTML(d.filename.slice(0, 24))}</span>
+          <button type="button" data-open-doc="${d.id}" class="doc-open-btn text-sky-400 hover:underline">Abrir</button>
+          <button type="button" data-dl-doc="${d.id}" class="doc-dl-btn text-emerald-400 hover:underline">⬇ Baixar</button>
+        </div>
+      `).join("");
+      document.querySelectorAll(".doc-open-btn").forEach((b) => b.addEventListener("click", () => {
+        state.activeDocId = b.dataset.openDoc; state.draftPts = []; state.ptPerMeter = getActiveDoc()?.calibrations?.[1] || null; renderDocsLibrary(); restoreDocument(state.activeDocId).catch(()=>toast("Arquivo não encontrado; reanexe o original.")); drawPlan();
+      }));
+      document.querySelectorAll(".doc-dl-btn").forEach((b) => b.addEventListener("click", async () => {
+        const doc = DB[state.tenant].documents.find((x) => x.id === b.dataset.dlDoc);
+        if (!doc) return;
+        await restoreDocument(doc.id).catch(()=>null);
+        if(!runtimeFiles[doc.id]&&!runtimeImages[doc.id]){toast("Original indisponível: reanexe o arquivo.");return;}
+        const a = document.createElement("a");
+        if (runtimeFiles[doc.id]) {
+          a.href = URL.createObjectURL(runtimeFiles[doc.id]);
+          a.download = doc.filename;
+        } else if (runtimeImages[doc.id]) {
+          a.href = runtimeImages[doc.id].src;
+          a.download = doc.filename;
+        } else {
+          drawPlan();
+          a.href = canvas.toDataURL("image/png");
+          a.download = doc.code + "_" + doc.rev + ".png";
+        }
+        a.click();
+        toast(`Download iniciado: ${a.download}`);
+      }));
+    }
+    $("sel-active-doc").addEventListener("change", (e) => { state.activeDocId = e.target.value; state.draftPts = []; state.ptPerMeter = getActiveDoc()?.calibrations?.[1] || null; renderDocsLibrary(); restoreDocument(state.activeDocId).catch(()=>{}); drawPlan(); });
+    const runtimeFiles = {};
+    const runtimePdfs = {};
+
+    async function renderPdfPageToImage(docId, pageNum) {
+      const pdf = runtimePdfs[docId];
+      if (!pdf) return;
+      const p = Math.max(1, Math.min(pdf.numPages, pageNum));
+      const page = await pdf.getPage(p);
+      const vp = page.getViewport({ scale: 1.5 });
+      const off = document.createElement("canvas");
+      off.width = vp.width; off.height = vp.height;
+      await page.render({ canvasContext: off.getContext("2d"), viewport: vp }).promise;
+      const img = new Image();
+      img.onload = () => {
+        runtimeImages[docId] = img;
+        state.pdfPage = p; state.ptPerMeter = getActiveDoc()?.calibrations?.[p] || null;
+        $("pdf-page-controls").classList.remove("hidden");
+        $("lbl-pdf-page").textContent = `Pág ${p}/${pdf.numPages}`;
+        drawPlan();
+      };
+      img.src = off.toDataURL("image/png");
+    }
+
+    $("btn-pdf-prev").addEventListener("click", () => {
+      const ad = getActiveDoc();
+      if (ad && runtimePdfs[ad.id] && (state.pdfPage || 1) > 1) renderPdfPageToImage(ad.id, (state.pdfPage || 1) - 1);
+    });
+    $("btn-pdf-next").addEventListener("click", () => {
+      const ad = getActiveDoc();
+      if (ad && runtimePdfs[ad.id] && (state.pdfPage || 1) < runtimePdfs[ad.id].numPages) renderPdfPageToImage(ad.id, (state.pdfPage || 1) + 1);
+    });
+
+    $("btn-upload-doc").addEventListener("click", async () => {
+      if (isReadOnly()) return;
+      const file = $("up-file").files[0]; if (!file) { toast("Escolha um arquivo PDF, JPG ou PNG."); return; }
+      const lower = file.name.toLowerCase();
+      if (lower.endsWith(".dwg")) {
+        toast("DWG exige conversão para PDF/DXF ou SDK licenciado (Autodesk/ODA) — não é aberto nativamente no navegador.");
+        return;
+      }
+      const arrBuf = await file.arrayBuffer();
+      let sha = "local-" + Date.now().toString(16);
+      try { const h = await crypto.subtle.digest("SHA-256", arrBuf); sha = Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2,"0")).join(""); } catch (_) {}
+      const id = "doc-" + crypto.randomUUID(), entry = { id, code: $("up-code").value.trim().toUpperCase() || "DOC-01", disc: $("up-disc").value, rev: $("up-rev").value.trim() || "R00", filename: file.name, sha256: sha };
+      runtimeFiles[id] = new Blob([arrBuf], { type: file.type || "application/octet-stream" });
+      try { await fileStore(id,runtimeFiles[id]); } catch(err) { toast("Falha ao salvar arquivo localmente; exporte backup imediatamente."); }
+      DB[state.tenant].documents.unshift(entry); state.activeDocId = id; saveState();
+
+      if (/(png|jpe?g)$/.test(lower)) {
+        $("pdf-page-controls").classList.add("hidden");
+        const url = URL.createObjectURL(runtimeFiles[id]);
+        const img = new Image();
+        img.onload = () => { runtimeImages[id] = img; renderDocsLibrary(); drawPlan(); toast(`Imagem ${entry.code} aberta! Use Calibrar (2 cliques) e depois meça.`); };
+        img.src = url;
+      } else if (lower.endsWith(".pdf")) {
+        if (window.pdfjsLib) {
+          try {
+            const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(arrBuf), disableWorker: true }).promise;
+            runtimePdfs[id] = pdf;
+            renderDocsLibrary();
+            await renderPdfPageToImage(id, 1);
+            toast(`PDF ${entry.code} (${pdf.numPages} pág.) renderizado! Calibre em 2 cliques para medir.`);
+          } catch (err) {
+            renderDocsLibrary(); drawPlan();
+            toast("PDF registrado (SHA-256 OK), mas não foi possível renderizar esta versão no navegador.");
+          }
+        } else {
+          renderDocsLibrary(); drawPlan();
+          toast(`PDF ${entry.code} registrado com SHA-256.`);
+        }
+      }
+    });
+
+    // Importador CSV SINAPI (código;descrição;unidade;preço)
+    $("inp-sinapi-csv").addEventListener("change", async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      const text = await f.text();
+      const lines = text.split(/\r?\n/).filter((l) => l.trim());
+      let imported = 0;
+      lines.forEach((ln) => {
+        const parts = ln.split(/[;,]/).map((x) => x.trim());
+        if (parts.length >= 4) {
+          const price = parseFloat(parts[3].replace(",", "."));
+          if (!isNaN(price) && price > 0) imported++;
+        }
+      });
+      $("lbl-sinapi-status").textContent = `SINAPI importado: ${imported} item(ns) lidos de ${f.name}`;
+      $("lbl-sinapi-status").className = "mono text-[11px] text-emerald-400";
+      toast(`Tabela SINAPI carregada (${imported} itens).`);
+    });
+    function docToCanvas(dx, dy) { let rx = dx, ry = dy; if (state.rot===90){rx=DOC_H-dy;ry=dx;} else if(state.rot===180){rx=DOC_W-dx;ry=DOC_H-dy;} else if(state.rot===270){rx=dy;ry=DOC_W-dx;} return [rx*state.zoom, ry*state.zoom]; }
+    function canvasToDoc(cx, cy) { const rx = cx/state.zoom, ry = cy/state.zoom; if(state.rot===0) return [rx,ry]; if(state.rot===90) return [ry,DOC_H-rx]; if(state.rot===180) return [DOC_W-rx,DOC_H-ry]; return [DOC_W-ry,rx]; }
+    function drawPlan() {
+      const sw = state.rot===90||state.rot===270; canvas.width=Math.round((sw?DOC_H:DOC_W)*state.zoom); canvas.height=Math.round((sw?DOC_W:DOC_H)*state.zoom);
+      ctx.save(); ctx.fillStyle="#0b0f17"; ctx.fillRect(0,0,canvas.width,canvas.height);
+      if(state.rot===90){ctx.translate(canvas.width,0);ctx.rotate(Math.PI/2);} else if(state.rot===180){ctx.translate(canvas.width,canvas.height);ctx.rotate(Math.PI);} else if(state.rot===270){ctx.translate(0,canvas.height);ctx.rotate(-Math.PI/2);}
+      ctx.scale(state.zoom,state.zoom);
+      const ad = getActiveDoc();
+      if (ad && runtimeImages[ad.id]) { ctx.drawImage(runtimeImages[ad.id], 0, 0, DOC_W, DOC_H); }
+      else {
+        ctx.strokeStyle="#334155"; ctx.strokeRect(14,14,DOC_W-28,DOC_H-28);
+        ctx.strokeStyle="#f8fafc"; ctx.lineWidth=2.2; ctx.strokeRect(120,110,283.464567,226.771654);
+        ctx.fillStyle="#38bdf8"; ctx.font="12px JetBrains Mono, monospace"; ctx.fillText("5.00 m (283.46 pt)", 195, 85); ctx.fillText("4.00 m", 412, 224);
+        ctx.fillStyle="#e2e8f0"; ctx.font="600 13px Inter, sans-serif"; ctx.fillText("SALA TIPO 101 — 20,00 m²", 175, 224);
+      }
+      ctx.restore();
+      if (state.draftPts.length) {
+        const spts = state.draftPts.map(([x,y])=>docToCanvas(x,y)); ctx.save(); ctx.strokeStyle="#34d399"; ctx.fillStyle="#34d399"; ctx.lineWidth=2;
+        ctx.beginPath(); spts.forEach(([x,y],i)=>i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)); ctx.stroke();
+        spts.forEach(([x,y])=>{ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();}); ctx.restore();
+      }
+    }
+    canvas.addEventListener("click", (e) => {
+      if (isReadOnly()) return;
+      const r = canvas.getBoundingClientRect(), [dx,dy] = canvasToDoc((e.clientX-r.left)*(canvas.width/r.width),(e.clientY-r.top)*(canvas.height/r.height));
+      state.draftPts.push([dx,dy]); const mode = $("sel-measure-mode").value;
+      if (mode==="calibrate" && state.draftPts.length===2) {
+        const dDoc = Math.hypot(state.draftPts[1][0]-state.draftPts[0][0], state.draftPts[1][1]-state.draftPts[0][1]), realM = Math.max(0.01, parseFloat($("inp-cal-meters").value)||5);
+        if (dDoc>1) { state.ptPerMeter = dDoc/realM; const doc=getActiveDoc(); if(doc){doc.calibrations=doc.calibrations||{};doc.calibrations[state.pdfPage||1]=state.ptPerMeter;saveState();} $("cal-status-text").textContent = `Calibrado: ${realM.toFixed(2)} m = ${dDoc.toFixed(1)} u_doc`; toast("Escala calibrada."); }
+        state.draftPts = [];
+      } else if (mode==="distance" && state.draftPts.length===2) {
+        if(!state.ptPerMeter){toast("Calibre esta prancha antes de medir.");state.draftPts=[];drawPlan();return;} const dDoc = Math.hypot(state.draftPts[1][0]-state.draftPts[0][0], state.draftPts[1][1]-state.draftPts[0][1]), dM = dDoc/state.ptPerMeter;
+        DB[state.tenant].measurements.unshift({ label: `Distância (${state.rot}°)`, value: `${dM.toFixed(4)} m`, formula: `${dDoc.toFixed(1)} u ÷ ${state.ptPerMeter.toFixed(3)}` });
+        state.draftPts = []; renderMeasurements(); saveState();
+      } else if (mode==="area" && state.draftPts.length===4) {
+        if(!state.ptPerMeter){toast("Calibre esta prancha antes de medir.");state.draftPts=[];drawPlan();return;} let s=0; for(let i=0;i<4;i++){const [x1,y1]=state.draftPts[i],[x2,y2]=state.draftPts[(i+1)%4]; s+=x1*y2-x2*y1;}
+        const aM2 = (Math.abs(s)/2)/(state.ptPerMeter*state.ptPerMeter);
+        DB[state.tenant].measurements.unshift({ label: `Área (${state.rot}°)`, value: `${aM2.toFixed(4)} m²`, formula: `Shoelace = ${aM2.toFixed(4)} m²` });
+        state.draftPts = []; renderMeasurements(); saveState();
+      }
+      drawPlan();
+    });
+    $("btn-zoom-in").onclick = () => { state.zoom = Math.min(2, Number((state.zoom+0.25).toFixed(2))); $("lbl-zoom").textContent=`${Math.round(state.zoom*100)}%`; drawPlan(); };
+    $("btn-zoom-out").onclick = () => { state.zoom = Math.max(0.75, Number((state.zoom-0.25).toFixed(2))); $("lbl-zoom").textContent=`${Math.round(state.zoom*100)}%`; drawPlan(); };
+    $("btn-rotate").onclick = () => { state.rot = (state.rot+90)%360; $("lbl-rot").textContent=`${state.rot}°`; drawPlan(); };
+    $("btn-clear-draft").onclick = () => { state.draftPts = []; drawPlan(); };
+    $("btn-demo-5m").onclick = () => { if(isReadOnly())return; toast("Teste de referência 5 m: use calibração real antes de registrar medições."); };
+    function renderMeasurements() {
+      const list = DB[state.tenant].measurements;
+      $("measure-list").innerHTML = list.length ? list.map((m, idx) => `
+        <div class="border border-zinc-800 rounded p-2.5 bg-zinc-950">
+          <div class="flex justify-between font-semibold"><span>${m.label}</span><span class="mono text-emerald-400">${m.value}</span></div>
+          <div class="mono text-[10px] text-zinc-500 mt-1">${m.formula}</div>
+          <button type="button" data-send-bud="${idx}" class="send-bud-btn mt-1.5 text-[11px] text-sky-400 hover:underline">→ Enviar p/ Orçamento</button>
+        </div>
+      `).join("") : '<div class="text-zinc-500">Sem medições.</div>';
+      document.querySelectorAll(".send-bud-btn").forEach((b) => b.addEventListener("click", () => {
+        const m = DB[state.tenant].measurements[Number(b.dataset.sendBud)];
+        const num = parseFloat(String(m.value).replace(",", ".")) || 10;
+        $("b-qty").value = num.toFixed(2);
+        recalcBudget();
+        switchTab("orcamento");
+        toast(`Quantitativo (${num.toFixed(2)}) enviado da planta para o Orçamento.`);
+      }));
+    }
+
+    // RDO, Estoque, Licenciamento, IA
+    function renderRdos() {
+      $("rdo-list").innerHTML = DB[state.tenant].rdos.map((r) => `<div class="border border-zinc-800 rounded p-2 bg-zinc-950 flex justify-between"><span><strong>${r.id}</strong> — ${escapeHTML(r.text)}</span><span class="mono text-emerald-400">${r.approved?"Aprovado":"Rascunho"}</span></div>`).join("") || '<div class="text-zinc-500">Sem RDOs.</div>';
+    }
+    $("btn-add-rdo").addEventListener("click", () => { if(isReadOnly())return; const txt=$("rdo-occ").value.trim(); if(!txt)return; DB[state.tenant].rdos.unshift({id:`RDO-0${DB[state.tenant].rdos.length+1}`,date:"2026-11-23",text:txt,approved:false}); $("rdo-occ").value=""; renderRdos(); saveState(); });
+    function renderStock() {
+      const t = DB[state.tenant]; $("stock-balance-badge").textContent = `${t.stockBalance} SC`;
+      $("stock-history").innerHTML = t.stockHistory.map((h) => `<div class="border border-zinc-800 rounded p-2 bg-zinc-950"><div class="flex justify-between mono"><span>${h.type} (${h.delta})</span><span>${h.prev}→${h.next}</span></div><div class="text-zinc-400 mt-1">${escapeHTML(h.note)}</div></div>`).join("") || '<div class="text-zinc-500">Sem movimentos.</div>';
+    }
+    $("btn-receive-nfe").addEventListener("click", () => { if(isReadOnly())return; const acc=Number($("inp-accepted-qty").value),t=DB[state.tenant];if(!Number.isInteger(acc)||acc<0||acc>250){toast("Quantidade inválida: entre 0 e 250 SC.");return;}t.receivedInvoices=t.receivedInvoices||[];const key="DEMO-1234-ITEM-CIMENTO";if(t.receivedInvoices.includes(key)){toast("Recebimento já lançado. Duplicidade bloqueada.");return;}const prev=t.stockBalance,div=250-acc;t.stockBalance+=acc;t.receivedInvoices.push(key);if(div>0)t.divergences++;t.stockHistory.unshift({type:"receipt",delta:`+${acc} SC`,prev,next:t.stockBalance,note:`NF-e DEMONSTRATIVA 1234 / Aceito ${acc} / Divergência ${div}`});auditEvent("stock_receipt",{key,acc,div});renderStock();renderObras();saveState(); });
+    $("btn-stock-adj").addEventListener("click", () => { if(isReadOnly())return; const target=Math.max(0,parseInt($("inp-adj-new").value,10)||0), reason=$("inp-adj-reason").value.trim(); if(!reason){toast("Motivo do ajuste obrigatório.");return;} const t=DB[state.tenant], prev=t.stockBalance, d=target-prev; auditEvent("stock_adjustment",{prev,target,reason}); t.stockBalance=target; t.stockHistory.unshift({type:"adjustment_compensation",delta:`${d>=0?"+":""}${d} SC`,prev,next:target,note:`Motivo: ${reason}`}); renderStock(); saveState(); });
+    function renderLicensing() {
+      const ibge=$("sel-ibge").value, z=$("inp-zoning").value.trim();
+      $("licensing-output").innerHTML = ibge==="2504009" ? `<div class="font-bold text-amber-400">pending_official_sources</div><p class="text-zinc-300">Sem legislação cadastrada para IBGE 2504009 (T10).</p>` : `<div class="font-bold text-sky-400">IBGE 2507507 — João Pessoa / PB (${z?"confirmed_official":"requires_verification"})</div><p class="text-zinc-300">Plano Diretor isolado não basta; ${z?"zoneamento: "+z:"informe o zoneamento do lote"}.</p>`;
+    }
+    $("btn-gen-checklist").addEventListener("click", renderLicensing);
+    function runAi(p) {
+      const blk = /aprovar pagamento|pix|excluir/i.test(p), t = DB[state.tenant];
+      $("ai-output").innerHTML = blk ? `<div class="font-bold text-red-400">Ação bloqueada (action_blocked: true)</div><p>IA não aprova pagamentos nem executa PIX.</p>` : `<div class="font-bold text-emerald-400">Síntese — ${escapeHTML(t.name)}</div><p>Obras: ${t.projects.length} · Materiais: ${t.materials.length} · Estoque: ${t.stockBalance} SC · Folha: ${$("payroll-grand-total").textContent}.</p>`;
+    }
+    document.querySelectorAll(".ai-preset").forEach((b) => b.addEventListener("click", () => { $("inp-ai-prompt").value = b.dataset.prompt; runAi(b.dataset.prompt); }));
+    $("btn-run-ai").addEventListener("click", () => runAi($("inp-ai-prompt").value));
+
+    function renderAll() {
+      $("tenant-select").value = state.tenant;
+      renderObras(); renderDocsLibrary(); renderMaterials(); recalcBudget(); renderRatesGrid(); renderPayrollTable(); renderMeasurements(); renderRdos(); renderStock(); renderLicensing();
+      switchTab(state.activeTab);
+    }
+    renderAll();
+    runAi("Resumo da folha, materiais e estoque");
+  </script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script><script>
+(()=>{const el=id=>document.getElementById('cloud-'+id); const msg=t=>el('status').textContent=t; if(!window.supabase){msg('Biblioteca indisponível. Verifique a internet.');return;} const client=window.supabase.createClient('https://aixathdeqxbqxjnnegsf.supabase.co','sb_publishable_1bbtBKJxGwDdf_R_szo9tQ_qI5B_zqP',{auth:{persistSession:false}}); let channel=null;let epoch=0; const check=r=>{if(r.error)throw r.error;return r.data};const run=fn=>async()=>{try{await fn()}catch(e){msg(e.message||'Falha na operação')}};async function projects(){const token=epoch;const org=el('org').value;el('projects').replaceChildren();el('active-project').replaceChildren();el('results').textContent='';if(!org)return;const rows=check(await client.from('projects').select('id,name').eq('organization_id',org).order('name'));if(token!==epoch||org!==el('org').value)return;for(const p of rows){const li=document.createElement('li');li.textContent=p.name;el('projects').append(li);const opt=document.createElement('option');opt.value=p.id;opt.textContent=p.name;el('active-project').append(opt)}}async function refresh(){const token=++epoch;const user=check(await client.auth.getUser()).user;if(token!==epoch)return;if(!user)return;const rows=check(await client.from('organizations').select('id,name').order('name'));if(token!==epoch)return;const prev=el('org').value;el('org').replaceChildren();for(const o of rows){const opt=document.createElement('option');opt.value=o.id;opt.textContent=o.name;el('org').append(opt)}if(rows.some(o=>o.id===prev))el('org').value=prev;el('private').hidden=false;await projects();if(token!==epoch)return;if(channel)await client.removeChannel(channel);channel=client.channel('cloud-projects').on('postgres_changes',{event:'*',schema:'public',table:'projects'},()=>run(projects)()).subscribe();msg('Sessão autenticada. Obras consultadas no servidor.')}el('login').onclick=run(async()=>{check(await client.auth.signInWithPassword({email:el('email').value,password:el('password').value}));el('password').value='';await refresh()});el('signup').onclick=run(async()=>{const d=check(await client.auth.signUp({email:el('email').value,password:el('password').value}));el('password').value='';if(d.session)await refresh();else msg('Confira seu e-mail para confirmar o cadastro.')});el('logout').onclick=run(async()=>{epoch++;el('private').hidden=true;el('results').textContent='';el('active-project').replaceChildren();el('operations').querySelectorAll('input').forEach(x=>x.value='');el('projects').replaceChildren();el('org').replaceChildren();if(channel)await client.removeChannel(channel);channel=null;check(await client.auth.signOut());msg('Sessão encerrada.')});el('org-create').onclick=run(async()=>{check(await client.rpc('create_organization',{p_name:el('org-name').value}));el('org-name').value='';await refresh()});el('project-create').onclick=run(async()=>{const name=el('project-name').value.trim();if(!name||!el('org').value)throw Error('Informe construtora e obra.');check(await client.from('projects').insert({organization_id:el('org').value,name}));el('project-name').value='';await projects()});el('refresh').onclick=run(refresh);el('org').onchange=run(projects);
+const fields=(spec)=>spec.map(([key,label,type])=>({key,label,type:type||'text'}));
+const forms=[
+['materials','Cadastrar material',fields([['name','Material'],['unit','Unidade']]),false],
+['invoices','Cadastrar nota fiscal',fields([['supplier','Fornecedor'],['access_key','Chave NF-e'],['issued_on','Emissão','date']]),true],
+['invoice_items','Item da nota',fields([['invoice_id','ID da nota'],['material_id','ID do material'],['billed_quantity','Quantidade faturada','number'],['unit_price','Preço unitário','number']]),true],
+['stock_movements','Recebimento físico',fields([['invoice_item_id','ID do item'],['material_id','ID do material'],['quantity','Quantidade recebida','number']]),true,{kind:'receipt'}],
+['budgets','Orçamento',fields([['name','Nome'],['scope','labor / materials / complete']]),true],
+['budget_items','Item de orçamento',fields([['budget_id','ID do orçamento'],['description','Serviço'],['unit','Unidade'],['quantity','Quantidade','number'],['labor_unit_cost','Custo MO unitário','number'],['material_unit_cost','Custo material unitário','number']]),true],
+['daily_reports','Diário de obra',fields([['report_date','Data','date'],['description','Ocorrências'],['workforce','Efetivo','number']]),true],
+['expenses','Despesa',fields([['description','Descrição'],['category','Categoria'],['amount','Valor','number'],['due_date','Vencimento','date']]),true]];
+const ctx=(project=true)=>{if(el('private').hidden||!el('org').value||(project&&!el('active-project').value))throw Error('Selecione construtora e obra.');return {organization_id:el('org').value,...(project?{project_id:el('active-project').value}:{})}};
+const show=async(table,project=true)=>{const token=epoch,c=ctx(project);let q=client.from(table).select('*').eq('organization_id',c.organization_id);if(project)q=q.eq('project_id',c.project_id);const data=check(await q.limit(100));if(token!==epoch||el('private').hidden||el('org').value!==c.organization_id||(project&&el('active-project').value!==c.project_id))return;el('results').textContent=JSON.stringify(data,null,2);};
+for(const [table,title,spec,project,extra] of forms){const f=document.createElement('form');f.className='border border-zinc-700 rounded p-3 flex flex-wrap gap-2';const h=document.createElement('strong');h.className='w-full';h.textContent=title;f.append(h);for(const field of spec){const input=document.createElement('input');input.name=field.key;input.type=field.type;input.placeholder=field.label;input.setAttribute('aria-label',field.label);input.required=field.key!=='access_key';if(field.type==='number')input.step='any';input.className='bg-zinc-800 rounded p-2';f.append(input)}const save=document.createElement('button');save.textContent='Salvar no servidor';save.className='bg-sky-800 rounded p-2';f.append(save);const list=document.createElement('button');list.type='button';list.textContent='Consultar registros / IDs';list.className='bg-zinc-700 rounded p-2';list.onclick=run(()=>show(table,project));f.append(list);f.onsubmit=async e=>{e.preventDefault();if(save.disabled)return;save.disabled=true;try{const c=ctx(project);const data={...c,...extra};for(const field of spec){const v=f.elements[field.key].value.trim();data[field.key]=field.type==='number'?Number(v):v||null;}check(await client.from(table).insert(data));f.reset();msg('Registro salvo no servidor.');await show(table,project);}catch(err){msg(err.message||'Falha ao salvar');}finally{save.disabled=false;}};el('operations').append(f)}
+for(const [table,title] of [['stock_balances','Saldo de estoque'],['invoice_reconciliation','Divergências NF-e'],['budget_totals','Totais de orçamento'],['expense_totals','Resumo financeiro']]){const b=document.createElement('button');b.type='button';b.className='bg-zinc-700 rounded p-2';b.textContent=title;b.onclick=run(()=>show(table));el('operations').append(b)}el('active-project').onchange=()=>el('results').textContent='';
+msg('Entre para acessar o piloto conectado.');})();
+</script>
+</body>
+</html>
